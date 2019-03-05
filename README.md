@@ -1,0 +1,319 @@
+Dataset Comparison
+================
+
+The problem
+-----------
+
+For one longitudinal study, the team I was on relied on an external group to handle questionnaire scoring and dataset merging. Occasionally we would notice errors in the merged dataset (often concomitant with other changes we asked the group to make in their data handling procedures). This script is based on a script I wrote to compare the newest dataset we received to the previous dataset we received.
+
+As the the datasets were expected to change over time (e.g., new data added to the merge, old data was cleaned, etc.), a direct comparison of the two files was inappropriate. Rather, based on workflow and the types of errors we received, it was decided to compare summaries of the two data files (e.g., counts of NAs and unique values, means and five number summaries, etc.). From there we could decide whether or not the changes seemed to indicate a problem.
+
+Two small demonstration datasets have been created for this example. This script can be generalized to any dataset pair with very little effort (variable list \[see: "dat" data frame\] changes, filename changes, input/output location changes).
+
+### Useful functions
+
+This script uses a function to retrieve the filename of the previous dataset. Due to earlier steps in the workflow, we know that old versions of the dataset are: 1) stored in an "archive" subfolder, 2) are .csv files, and 3) have the creation date stored in their filenames in a way that is useful for sorting.
+
+The basic use of the function is to retrieve the filename of the file that was created most recently based on filename. This behavior can be changed with the "rank" argument, allowing you to get the filename of the 2nd most recent, 3rd most recent, etc.
+
+``` r
+get_comparison <- function(rank=1, path="archive"){
+  # Get list of all old files in archive folder (ending in "filtered.csv")
+  archive_filtered <- list.files(path=path, pattern=".*\\.csv$")
+  # Get newest old file (or second-to-newest if rank=2, etc.)
+  archive_first <- sort(archive_filtered, decreasing=TRUE)[rank]
+  # Get and return full path to file
+  archive_path <- paste0(path,"/", archive_first)
+  return(archive_path)
+}
+
+# Function demo ----
+
+# Show list of files in the archive subfolder
+list.files(path="archive", pattern=".*\\.csv$")
+```
+
+    ## [1] "dataset_2019.01.10.csv" "dataset_2019.03.05.csv"
+
+``` r
+# Show the most recent data file (based on filename)
+get_comparison()
+```
+
+    ## [1] "archive/dataset_2019.03.05.csv"
+
+``` r
+# Show second-to-most recent data file (based on filename)
+get_comparison(2)
+```
+
+    ## [1] "archive/dataset_2019.01.10.csv"
+
+### Prepare script: Select files to compare (or keep the default)
+
+``` r
+# Specify files to be compared -----
+
+# If you want to change the files being compared from their defaults, do so here:
+old_file_name <- get_comparison() # default: get_comparison() 
+new_file_name <- "dataset.csv"    # default: "dataset.csv"
+```
+
+### Run the script
+
+``` r
+# Main script ---------------
+
+options(digits=4) # Limit the number of decimal places printed
+
+# Import data -----
+
+# Import the old version
+oldm <-read.csv(old_file_name,
+                header=TRUE, 
+                na.string=c("NA"," ","","   .","  /  /"))
+
+# Import the new version
+newm <-read.csv(new_file_name,
+                header=TRUE, 
+                na.string=c("NA"," ","","   .","  /  /"))
+
+# Summarize the datasets and export their individual summaries  ----
+
+for(df_loop in 1:2){
+  
+  # Will run twice: First on new dataset, second on old dataset
+  # (Invisible keeps down clutter in console)
+  invisible(ifelse(df_loop==1, dat.all <- newm, dat.all <- oldm))
+  
+  # Subset variables of interest
+  # (Since the demo datasets are so small, we'll look at all columns)
+  dat <- subset(dat.all,select=c(
+    id, cohort, knee, surgeon, 
+    marx_score.t0, marx_score.t6, marx_score.t10))
+  
+  # Initialize the summary data frame 
+  summ <- data.frame(var = rep("",ncol(dat)),      # Var name
+                     n = rep("", ncol(dat)),       # N non-missing
+                     missing = rep("", ncol(dat)), # N missing 
+                     unique = rep("", ncol(dat)),  # N unique values
+                     avg = rep("", ncol(dat)),     # Average
+                     sd = rep("", ncol(dat)),      # Standard Deviation
+                     q1 = rep("", ncol(dat)),      # Five-number summary
+                     q2 = rep("", ncol(dat)),
+                     q3 = rep("", ncol(dat)),
+                     q4 = rep("", ncol(dat)),
+                     q5 = rep("", ncol(dat)),
+                     lv1 = rep("", ncol(dat)),     # Factor levels & counts
+                     lv1n = rep("", ncol(dat)),
+                     lv2 = rep("", ncol(dat)),
+                     lv2n = rep("", ncol(dat)),
+                     lv3 = rep("", ncol(dat)),
+                     lv3n = rep("", ncol(dat)),
+                     lv4 = rep("", ncol(dat)),
+                     lv4n = rep("", ncol(dat)),
+                     lv5 = rep("", ncol(dat)),
+                     lv5n = rep("", ncol(dat)),
+                     lv6 = rep("", ncol(dat)),
+                     lv6n = rep("", ncol(dat)),
+                     lv7 = rep("", ncol(dat)),
+                     lv7n = rep("", ncol(dat)),
+                     lv8 = rep("", ncol(dat)),
+                     lv8n = rep("", ncol(dat)),
+                     lv9 = rep("", ncol(dat)),
+                     lv9n = rep("", ncol(dat)),
+                     lv10 = rep("", ncol(dat)),
+                     lv10n = rep("", ncol(dat)),
+                     CLASS = rep("", ncol(dat)),   # Data type
+                     stringsAsFactors=FALSE) 
+  
+  # On first iteration, save an empty version of the comparison data frame 
+  # (to be used later)
+  if(df_loop == 1) {
+    comparesum <- summ 
+  }
+  
+  # LOOP
+  # Will run once for each column (variable) in the data that was subset into "dat" above
+  for(i in 1:ncol(dat)){ # For each variable, provide the following:
+    # Column 1: Variable name 
+    summ[i,1] <- colnames(dat[i])
+    # Column 2: Count of non-missing cases
+    summ[i,2] <- length(which(!is.na(dat[,i])))
+    # Column 3: Count of missing cases
+    summ[i,3] <- length(which(is.na(dat[,i])))
+    # Column 4: Count of unique values
+    summ[i,4] <- length(unique(dat[,i], na.rm=TRUE))
+    # Cols 5-11: Create summary statistics if integer or numeric
+    if (class(dat[,i])=="integer" | class(dat[,i])=="numeric"){
+      summ[i,5] <- round(mean(dat[,i], na.rm=TRUE),3) # mean
+      summ[i,6] <- round(sd(dat[,i], na.rm=TRUE),3) # sd
+      qobj <- quantile(dat[,i], na.rm=TRUE) # (5 number summary)
+      summ[i,7] <- qobj[[1]] # q1 (0% / min)
+      summ[i,8] <- qobj[[2]] # q2 (25%)
+      summ[i,9] <- qobj[[3]] # q3 (50%)
+      summ[i,10] <- qobj[[4]] # q4 (75%)
+      summ[i,11] <- qobj[[5]] # q5 (100% / max)
+      rm(qobj) # Cleanup
+    } else { # Else if not integer or numeric, fill Cols 5-11 with blanks
+      summ[i,5:11] <- ""
+    }
+    # Cols 12-31: Create factor-level (category level) counts if factor OR factor-like number
+    # Note: Some factors have an EXTREMELY large number of levels (E.g., registration # [REGN]) 
+    # We care more about the missing and unique diagnostics for those factors (run above)
+    # (rather than the # of responses per level) 
+    # We'll only get counts of the first 10 factor levels.
+    # We'll also run this on numbers w/ few unique values (category-like numbers)
+    if(  class(dat[,i])=="factor" | 
+         ((class(dat[,i])=="integer" | class(dat[,i])=="numeric") & length(unique(dat[,i])) <11) ){
+      # Reorder function levels so that most common are first
+      # (To remove this functionality, comment out the next line)
+      dat[,i] <- reorder(dat[,i], dat[,i], FUN = function(x) length(x)*-1)
+      # Get a list of all factor levels for this variable
+      flvls <- table(dat[,i]) 
+      # Return Label for first factor
+      summ[i,12] <- ifelse(!is.na(names(flvls[1])),names(flvls)[1],"")
+      # Return # of occurrences for first factor
+      summ[i,13] <- ifelse(!is.na(names(flvls[1])),flvls[[1]],"")
+      # (and so on, for 2nd - 10th factor level)
+      summ[i,14] <- ifelse(!is.na(names(flvls[2])),names(flvls)[2],"")
+      summ[i,15] <- ifelse(!is.na(names(flvls[2])),flvls[[2]],"")
+      summ[i,16] <- ifelse(!is.na(names(flvls[3])),names(flvls)[3],"")
+      summ[i,17] <- ifelse(!is.na(names(flvls[3])),flvls[[3]],"")
+      summ[i,18] <- ifelse(!is.na(names(flvls[4])),names(flvls)[4],"")
+      summ[i,19] <- ifelse(!is.na(names(flvls[4])),flvls[[4]],"")
+      summ[i,20] <- ifelse(!is.na(names(flvls[5])),names(flvls)[5],"")
+      summ[i,21] <- ifelse(!is.na(names(flvls[5])),flvls[[5]],"")
+      summ[i,22] <- ifelse(!is.na(names(flvls[6])),names(flvls)[6],"")
+      summ[i,23] <- ifelse(!is.na(names(flvls[6])),flvls[[6]],"")
+      summ[i,24] <- ifelse(!is.na(names(flvls[7])),names(flvls)[7],"")
+      summ[i,25] <- ifelse(!is.na(names(flvls[7])),flvls[[7]],"")
+      summ[i,26] <- ifelse(!is.na(names(flvls[8])),names(flvls)[8],"")
+      summ[i,27] <- ifelse(!is.na(names(flvls[8])),flvls[[8]],"")
+      summ[i,28] <- ifelse(!is.na(names(flvls[9])),names(flvls)[9],"")
+      summ[i,29] <- ifelse(!is.na(names(flvls[9])),flvls[[9]],"")
+      summ[i,30] <- ifelse(!is.na(names(flvls[10])),names(flvls)[10],"")
+      summ[i,31] <- ifelse(!is.na(names(flvls[10])),flvls[[10]],"")
+      rm(flvls) # Clean up
+    } else { # If not a factor/factor-like, return nothing for these cells
+      summ[i,12:31] <- ""
+    }
+    # Get class of variable (integer, logical, etc.)
+    summ[i,32] <- class(dat[,i])
+  }
+  
+  # SAVE DATA FRAMES AND EXPORT SUMMARY CSVs
+  if(df_loop == 1) { # Save new dataset information
+    newsum <- summ # Copy generic df to "new" df (we'll use this later)
+    write.csv(newsum, 
+              file=paste("output/Summary_",format(Sys.time(), "%Y.%m.%d"),"_NEW.csv",sep=""))
+  } else if (df_loop == 2){ # Save previous dataset information
+    oldsum <- summ # Copy generic df to "old" df (we'll use this later)
+    write.csv(oldsum, 
+              file=paste("output/Summary_",format(Sys.time(), "%Y.%m.%d"),"_OLD.csv",sep=""))
+  }
+  # Clean up (end of dataframe-level iteration)
+  rm(list= ls()[ls() %in% c('summ','dat','dat.all')])
+}
+
+# Compare the merges and export comparison .csv ----
+
+for(i in 1:ncol(comparesum)){ # Do once for each column in the comparison data frame
+  if(i == 1){ # These are variable names - just copy them to the comparison data frame
+    comparesum[,i] <- newsum[,i] 
+  } else { # Else - compare columns, return FALSE if not equivalent
+    comparesum[,i] <- ifelse(newsum[,i] == oldsum[,i],"","FALSE") 
+  }
+}
+
+# Append names of files being compared to comparison dataframe
+comparison_str <- paste("Comparing:", old_file_name, "and", new_file_name)
+comparesum <- rbind(comparesum,var=c(comparison_str, rep(NA, ncol(comparesum)-1)))
+
+write.csv(comparesum, 
+          file=paste("output/Summary_",format(Sys.time(), "%Y.%m.%d"),"_COMPARE.csv",sep=""))
+```
+
+Examine output
+--------------
+
+For the sake of the example, let's take a peek at the old and new dataset (all output will be truncated to save space).
+
+``` r
+oldm[1:5,]
+```
+
+    ##   id cohort  knee surgeon marx_score.t0 marx_score.t6 marx_score.t10
+    ## 1  1      1 right     AAA            14             0              0
+    ## 2  2      1  left     BBB            14             0             NA
+    ## 3  3      1 right     CCC            32             0              4
+    ## 4  4      1  left     AAA            32            12             12
+    ## 5  5      1 right     BBB            24             2              5
+
+``` r
+newm[1:5,]
+```
+
+    ##   id cohort  knee surgeon marx_score.t0 marx_score.t6 marx_score.t10
+    ## 1  1      1 right     AAA             7             0              0
+    ## 2  2      1  left     BBB             7             0              0
+    ## 3  3      1 right     CCC            16             0              4
+    ## 4  4      1  left     AAA            16            12             12
+    ## 5  5      1 right     BBB            12             2              5
+
+We can see one previously missing T10 MARX score that now has a value. It's likely that this participant's T10 questionnaire was received recently. However, something seems to have gone awry with the MARX baseline scores - they should not have changed.
+
+Now let's look at the two summaries that were produced:
+
+``` r
+oldsum[,1:10]
+```
+
+    ##              var  n missing unique   avg    sd q1    q2   q3    q4
+    ## 1             id 30       0     30  15.5 8.803  1  8.25 15.5 22.75
+    ## 2         cohort 30       0      5 3.333 1.516  1     2  3.5     5
+    ## 3           knee 30       0      2                                
+    ## 4        surgeon 30       0      3                                
+    ## 5  marx_score.t0 30       0     14  15.9 8.747  0 11.25   16    22
+    ## 6  marx_score.t6 28       2     15 6.464 5.051  0     1  6.5 11.25
+    ## 7 marx_score.t10 17      13     10 5.235 4.323  0     1    5     8
+
+``` r
+newsum[,1:10]
+```
+
+    ##              var  n missing unique    avg    sd q1   q2   q3    q4
+    ## 1             id 30       0     30   15.5 8.803  1 8.25 15.5 22.75
+    ## 2         cohort 30       0      5  3.333 1.516  1    2  3.5     5
+    ## 3           knee 30       0      2                                
+    ## 4        surgeon 30       0      3                                
+    ## 5  marx_score.t0 30       0     10 10.833 5.147  0 7.25   12    16
+    ## 6  marx_score.t6 28       2     15  6.464 5.051  0    1  6.5 11.25
+    ## 7 marx_score.t10 21       9     10  5.143 4.139  0    1    5     8
+
+Armed with the knowledge that MARX scores range from 0 to 16 (with higher scores indicating higher self-reported frequencies of running, deceleration, cutting, and pivoting), we should be very concerned that the new dataset has a maximum MARX value of 22 at T0. This would require further investigation.
+
+There have also been changes in the MARX at T10, but the scores are all in range and the decrease in missing cases indicates that we've received new questionnaires with new scores, thus changing the summaries. This is fine.
+
+We can also look at the comparison data frame. This dataframe simply shows us where the differences occur (cells marked with "FALSE") and can be useful in real-world examples in which many variables are compared.
+
+``` r
+comparesum[1:7,1:10]
+```
+
+    ##              var     n missing unique   avg    sd q1    q2    q3    q4
+    ## 1             id                                                      
+    ## 2         cohort                                                      
+    ## 3           knee                                                      
+    ## 4        surgeon                                                      
+    ## 5  marx_score.t0                FALSE FALSE FALSE    FALSE FALSE FALSE
+    ## 6  marx_score.t6                                                      
+    ## 7 marx_score.t10 FALSE   FALSE        FALSE FALSE
+
+Finally, we can see a record of the files being compared in the last row of the comparison data frame.
+
+``` r
+comparesum[8,1]
+```
+
+    ## [1] "Comparing: archive/dataset_2019.03.05.csv and dataset.csv"
