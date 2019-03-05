@@ -1,0 +1,9 @@
+"","var","n","missing","unique","avg","sd","q1","q2","q3","q4","q5","lv1","lv1n","lv2","lv2n","lv3","lv3n","lv4","lv4n","lv5","lv5n","lv6","lv6n","lv7","lv7n","lv8","lv8n","lv9","lv9n","lv10","lv10n","CLASS"
+"1","id","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""
+"2","cohort","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""
+"3","knee","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""
+"4","surgeon","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""
+"5","marx_score.t0","","","FALSE","FALSE","FALSE","","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE","FALSE"
+"6","marx_score.t6","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""
+"7","marx_score.t10","FALSE","FALSE","","FALSE","FALSE","","","","","","","FALSE","FALSE","","FALSE","FALSE","FALSE","","","","FALSE","","FALSE","FALSE","FALSE","FALSE","FALSE","","","",""
+"8","Comparing: archive/dataset_2019.03.05.csv and dataset.csv",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
