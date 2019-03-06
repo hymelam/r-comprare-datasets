@@ -127,8 +127,8 @@ for(df_loop in 1:2){
                      CLASS = rep("", ncol(dat)),   # Data type
                      stringsAsFactors=FALSE) 
   
-  # On first iteration, save an empty version of the comparison data frame 
-  # (to be used later)
+  # On first iteration, save an empty version of the summary data frame 
+  # (to be used later when creating the comparison data frame)
   if(df_loop == 1) {
     comparesum <- summ 
   }
